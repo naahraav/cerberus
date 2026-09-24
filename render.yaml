@@ -1,0 +1,18 @@
+# Render blueprint for the Cerberus AI Tusk proxy.
+# Deploy this as a Web Service; the site itself can stay a static host.
+# After deploy, copy the service URL into src/js/config.js (aiProxyUrl).
+services:
+  - type: web
+    name: cerberus-tusk-proxy
+    runtime: node
+    plan: free
+    buildCommand: "" # zero dependencies, nothing to build
+    startCommand: node tools/tusk-proxy/server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      # Set this to your live site origin in the dashboard, e.g.
+      # https://cerberus-ai.onrender.com
+      - key: ALLOW_ORIGIN
+        value: "*"

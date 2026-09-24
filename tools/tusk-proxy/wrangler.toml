@@ -1,0 +1,26 @@
+# Cloudflare Worker config for the Cerberus AI Tusk proxy.
+#
+# Deploy (one time, from this folder):
+#   npx wrangler login      # opens a browser, click Allow
+#   npx wrangler deploy     # prints https://cerberus-tusk-proxy.<you>.workers.dev
+#
+# Then set that URL as aiProxyUrl in src/js/config.js. After that the page
+# connects automatically and nobody runs `node server.mjs` again.
+
+name = "cerberus-tusk-proxy"
+main = "worker.mjs"
+compatibility_date = "2024-11-01"
+
+# JSON imports (models.json) are bundled by Wrangler automatically.
+
+# The upstream base is fixed to the real Tusk origin in code. These vars are
+# optional overrides:
+#
+#   UPSTREAM_ORIGIN = "https://new.tusksearch.com"   # only for testing
+#   ALLOW_ORIGIN    = "https://your-site.example"    # lock CORS to your site
+#
+# Set them from the CLI instead of hard-coding secrets here, for example:
+#   npx wrangler deploy
+#   # and in the dashboard, add a variable ALLOW_ORIGIN = https://cerberus-ai.example
+#
+# Keeping ALLOW_ORIGIN unset reflects any origin ("*"), which is fine to start.

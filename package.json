@@ -1,0 +1,31 @@
+{
+  "name": "girlmeetstech",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cerberus AI - a three-headed judge for startup and product pitches. Static site plus a zero-dependency Tusk AI proxy.",
+  "scripts": {
+    "dev": "node server.js",
+    "build:css": "tailwindcss -i src/tailwind/tailwind.css -o src/css/tailwind.css --minify",
+    "build:wallet": "esbuild src/js/chain/metamaskConnect.js --bundle --minify --format=iife --global-name=CerberusMetaMask --platform=browser --legal-comments=external --outfile=src/js/chain/metamaskConnect.bundle.js && node -e \"const fs=require('node:fs'); const p='src/js/chain/metamaskConnect.bundle.js.LEGAL.txt'; fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace(/[ \\t]+$/gm,''))\"",
+    "build": "npm run build:css && npm run build:wallet",
+    "verify:css": "node tools/verify-css.mjs",
+    "start": "node server.js",
+    "serve": "node server.js",
+    "lint": "node --check server.js tools/tusk-proxy/server.mjs tools/tests/run-all.mjs",
+    "test": "node tools/tests/run-all.mjs",
+    "deploy:proxy": "wrangler deploy --config tools/tusk-proxy/wrangler.toml"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@metamask/connect-evm": "^2.1.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3"
+  }
+}

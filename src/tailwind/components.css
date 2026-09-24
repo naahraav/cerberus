@@ -1,0 +1,51 @@
+/* Cerberus AI · shared button helpers.
+   Flat, token-driven buttons. The canonical button styling lives in
+   ../css/styles.css; these `tw-*` names are kept because page markup applies
+   them alongside `.button`, so both names must resolve to the same look. */
+
+@layer components {
+  .tw-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--r-2);
+    font-weight: 700;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-ink);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.16s ease, color 0.16s ease;
+  }
+
+  .tw-btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--btn-primary-bg) 88%, var(--ink) 12%);
+  }
+
+  .tw-btn-primary:disabled {
+    background: var(--btn-primary-disabled-bg);
+    color: var(--btn-primary-disabled-ink);
+    border: 1px solid var(--btn-primary-disabled-border);
+    cursor: not-allowed;
+  }
+
+  .tw-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--r-2);
+    font-weight: 600;
+    background: var(--btn-quiet-bg);
+    color: var(--btn-quiet-ink);
+    border: 1px solid var(--btn-quiet-border);
+    cursor: pointer;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+
+  .tw-btn-secondary:hover:not(:disabled) {
+    background: var(--btn-quiet-hover-bg);
+    border-color: var(--btn-quiet-hover-border);
+    color: var(--btn-quiet-hover-ink);
+  }
+}

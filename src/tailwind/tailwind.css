@@ -1,0 +1,19 @@
+/* Cerberus AI · Tailwind entry.
+   ONE visual system lives in ../css/styles.css (the worked-stone gate). The
+   design tokens are declared there, in one place, so this file holds only the
+   Tailwind layers plus a few genuinely shared utilities. No token block is
+   duplicated here. See docs/DESIGN.md.
+
+   Build: npm run build:css
+   (tailwindcss -i src/tailwind/tailwind.css -o src/css/tailwind.css --minify) */
+
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tailwind component/utility helpers that page markup still uses. */
+@import "./glassmorphism.css";
+@import "./components.css";
+
+/* The single visual system (tokens + base + components). Imported last so its
+   component classes take precedence over the thin utility helpers above. */
+@import "../css/styles.css";

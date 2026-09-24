@@ -1,0 +1,31 @@
+/* Cerberus AI · glass surfaces.
+   Flat stone, no blur, no glow: the worked-stone system has no translucency.
+   These helpers exist only so the markup's `tw-glass-*` classes resolve; the
+   real surface styling lives in ../css/styles.css. */
+
+@layer utilities {
+  .tw-glass-card,
+  .tw-glass-panel {
+    background-color: var(--glass-card);
+    border: 1px solid var(--glass-border);
+    box-shadow: none;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+  }
+
+  .tw-glass-card:hover {
+    border-color: var(--glass-border-light);
+  }
+
+  .tw-glass-input {
+    background: var(--field-bg);
+    border: 1px solid var(--field-border);
+    color: var(--field-ink);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .tw-glass-input:focus {
+    border-color: var(--field-border-focus);
+    box-shadow: 0 0 0 3px var(--field-focus-ring);
+    outline: none;
+  }
+}

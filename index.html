@@ -1,0 +1,624 @@
+﻿<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0e1116" />
+    <meta name="cerberus-proxy" content="https://cerberus-tusk-proxy.cerberus-tusk-proxy.workers.dev" />
+    <meta name="description" content="Pitch an idea, answer three AI reviewers' questions, and see how they score it. Publishing a public record is optional." />
+    <title>Cerberus AI · Pitch review</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cerberus AI · Pitch review" />
+    <meta property="og:description" content="Pitch an idea, answer three AI reviewers' questions, and see how they score it. Publishing is optional." />
+    <meta property="og:image" content="https://3cerberus.com/src/assets/cerberus.jpeg" />
+    <meta property="og:image:alt" content="Lavender three-headed Cerberus illustration" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Cerberus AI · Pitch review" />
+    <meta name="twitter:description" content="Pitch an idea, answer three AI reviewers' questions, and see how they score it. Publishing is optional." />
+    <meta name="twitter:image" content="https://3cerberus.com/src/assets/cerberus.jpeg" />
+    <link rel="icon" href="src/assets/cerberus.jpeg?v=2" type="image/jpeg" />
+
+    <!-- Apply saved theme before first paint (defaults to dark) -->
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("cerberus-browser-sandbox-v1-theme");
+          var theme = stored === "light" || stored === "dark"
+            ? stored
+            : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+
+    <!-- Locally built styles; the review remains available if a CDN is down. -->
+    <link rel="stylesheet" href="src/css/tailwind.css?v=10" />
+    <script src="src/js/config.js?v=10" defer></script>
+    <script src="src/js/core/heads.js" defer></script>
+    <script src="src/js/cerberus-abi.js" defer></script>
+    <script src="src/js/core/dom.js" defer></script>
+    <script src="src/js/core/store.js" defer></script>
+    <script src="src/js/core/phases.js" defer></script>
+    <script src="src/js/core/theme.js" defer></script>
+    <script src="src/js/core/pitch.js" defer></script>
+    <script src="src/js/core/room.js" defer></script>
+    <script src="src/js/core/verdict.js?v=11" defer></script>
+    <script src="src/js/core/guide.js" defer></script>
+    <script src="src/js/judges.js" defer></script>
+    <script src="src/js/ai/tuskStreamParser.js" defer></script>
+    <script src="src/js/ai/tuskClient.js?v=12" defer></script>
+    <script src="src/js/ai/reviewers.js" defer></script>
+    <script src="src/js/ai/debate.js" defer></script>
+    <script src="src/js/ai/liveVerdict.js?v=11" defer></script>
+    <script src="src/js/ai/liveRoom.js" defer></script>
+    <script src="src/js/ai/suggest.js" defer></script>
+    <script src="src/js/ai/pitchDraft.js" defer></script>
+    <script src="src/js/ai/aiMode.js?v=11" defer></script>
+    <script src="src/js/chain/metamaskConnect.bundle.js?v=10" defer></script>
+    <script src="src/js/chain/publish.js?v=15" defer></script>
+    <script src="src/js/chain/records.js" defer></script>
+    <script src="src/vendor/ethers.umd.min.js" defer></script>
+    <script src="src/js/app.js?v=11" defer></script>
+  </head>
+  <body class="app-body antialiased min-h-screen overflow-x-hidden">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="app-shell flex flex-col md:flex-row min-h-screen relative">
+      <!-- Sidebar rail -->
+      <header class="site-header shrink-0">
+        <button class="sidebar-scrim" type="button" tabindex="-1" aria-hidden="true" id="sidebar-scrim"></button>
+
+        <div class="topbar md:hidden flex items-center justify-between px-4 py-2.5 border-b sticky top-0 z-40">
+          <button class="menu-toggle p-2 transition-colors" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Toggle navigation menu">
+            <span class="menu-toggle__box" aria-hidden="true">
+              <span class="menu-toggle__bars"></span>
+            </span>
+            <span class="visually-hidden">Menu</span>
+          </button>
+          <a class="topbar__brand flex items-center gap-2" href="#room" aria-label="Cerberus AI home">
+            <img class="topbar__mark" src="src/assets/cerberus.jpeg" alt="" width="32" height="32" />
+            <span class="topbar__title font-serif font-bold text-base tracking-wider">Cerberus <span class="wordmark__ai font-sans font-bold text-sm tracking-normal">AI</span></span>
+          </a>
+          <div class="topbar__trail">
+            <span class="topbar__badge font-mono text-xs px-2.5 py-1 rounded-full border" id="mobile-phase-badge" title="Current phase">1/3</span>
+          </div>
+        </div>
+
+        <aside class="sidebar w-full md:w-64 lg:w-72 flex flex-col p-4 sm:p-5 border-r" aria-label="Primary">
+          <div class="sidebar__top flex items-center justify-between mb-4 sm:mb-4.5">
+            <a class="wordmark group flex items-center gap-2.5 transition-transform duration-200 hover:scale-[1.02]" href="#room" aria-label="Cerberus AI home">
+              <img class="wordmark__mark" src="src/assets/cerberus.jpeg" alt="" width="32" height="32" />
+              <span class="wordmark__title font-serif font-bold text-base tracking-wider">Cerberus <span class="wordmark__ai font-sans font-bold text-sm tracking-normal">AI</span></span>
+            </a>
+            <button class="sidebar__close md:hidden p-2 transition-colors" type="button" id="sidebar-close" aria-label="Close menu">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- + New pitch button -->
+          <button class="sidebar__new w-full flex items-center justify-start gap-2.5 py-2.5 px-3.5 font-semibold text-sm transition-all duration-200" type="button" id="judge-another-top" aria-label="Start a new pitch">
+            <span class="sidebar__new-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </span>
+            <span>New pitch</span>
+          </button>
+
+          <!-- Sealed records nav with diamond star icon -->
+          <nav class="site-nav mt-1.5 mb-3" id="site-nav" aria-label="Primary navigation">
+            <a href="#records" id="nav-records" class="nav-records-link flex items-center gap-2.5 px-3.5 py-2 text-sm font-medium transition-all">
+              <span class="nav-diamond-icon shrink-0" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                  <path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" />
+                </svg>
+              </span>
+              <span>Sealed records</span>
+            </a>
+          </nav>
+
+          <hr class="sidebar__divider my-3.5" aria-hidden="true" />
+
+          <!-- Phase stepper -->
+          <div class="sidebar__section sidebar__section--steps">
+            <span class="detail-label block text-[11px] font-bold tracking-wider uppercase mb-2.5" id="phase-progress">STEP 1 OF 3 · PITCH</span>
+            <ol class="steps flex flex-col gap-1.5" id="phase-steps">
+              <li>
+                <button class="step is-current w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all text-left" type="button" data-phase="pitch" aria-current="step">
+                  <span class="step__num flex items-center justify-center w-5.5 h-5.5 rounded-full text-xs font-mono font-bold" aria-hidden="true">1</span>
+                  <span class="step__label flex-1 font-semibold">Pitch</span>
+                </button>
+              </li>
+              <li>
+                <button class="step w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all text-left" type="button" data-phase="conversation" disabled>
+                  <span class="step__num flex items-center justify-center w-5.5 h-5.5 rounded-full text-xs font-mono font-bold" aria-hidden="true">2</span>
+                  <span class="step__label flex-1 font-medium">Make your case</span>
+                </button>
+              </li>
+              <li>
+                <button class="step w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-all text-left" type="button" data-phase="verdict" disabled>
+                  <span class="step__num flex items-center justify-center w-5.5 h-5.5 rounded-full text-xs font-mono font-bold" aria-hidden="true">3</span>
+                  <span class="step__label flex-1 font-medium">Verdict</span>
+                </button>
+              </li>
+            </ol>
+            <p class="steps__note text-xs mt-3" id="phase-note">Fill in the pitch to continue.</p>
+          </div>
+
+          <!-- Foot controls -->
+          <footer class="sidebar__foot mt-auto pt-3.5 border-t flex flex-col gap-2.5">
+            <button class="theme-toggle w-full flex items-center gap-2.5 px-3.5 py-2 text-sm font-medium transition-all text-left" type="button" id="theme-toggle" aria-pressed="false">
+              <span class="theme-toggle__icon flex items-center justify-center shrink-0" aria-hidden="true">
+                <svg class="theme-toggle__sun" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.2 5.2l1.9 1.9M16.9 16.9l1.9 1.9M18.8 5.2l-1.9 1.9M7.1 16.9l-1.9 1.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <svg class="theme-toggle__moon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                  <path d="M20 14.2A8 8 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <span data-theme-label class="text-sm font-medium">Dark mode</span>
+            </button>
+            <button class="text-link text-link--button sidebar__guide text-xs text-left transition-colors" type="button" data-action="open-deploy-guide">How does publishing work?</button>
+            <p class="sidebar__chain-links">Built on <a href="https://botchain.ai" target="_blank" rel="noopener noreferrer">BOT Chain</a> · <a href="https://scan.botchain.ai" target="_blank" rel="noopener noreferrer">Mainnet explorer</a></p>
+          </footer>
+        </aside>
+      </header>
+
+      <!-- App Main Content Surface -->
+      <div class="app-main flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-6 md:py-10 max-w-6xl mx-auto w-full">
+        <main id="main-content" class="w-full">
+          <!-- ===================== Phase 1 and 2: the room ===================== -->
+          <section class="room space-y-6" id="room" aria-labelledby="room-title">
+            <div class="shell w-full max-w-4xl mx-auto">
+              <header class="room-head mb-6 sm:mb-8 text-center sm:text-left">
+                <div class="room-head__copy">
+                  <h1 class="room-label font-serif text-3xl sm:text-4xl font-bold tracking-tight" id="room-title">Pitch your idea</h1>
+                  <p class="room-intro" id="phase-intro">Choose your three models to start.</p>
+                  <p class="phase-line text-sm font-medium mt-1" id="phase-line" aria-hidden="true">Step 1 of 3 · Pitch</p>
+                </div>
+                <img class="room-head__art" src="src/assets/cerberus.jpeg" alt="Illustration of a lavender three-headed Cerberus" width="1199" height="1599" />
+              </header>
+
+              <div class="reviewers-strip glass-card p-4 sm:p-5 mb-6" id="room-panel" data-phase="conversation" hidden>
+                <div class="reviewers-strip__summary flex flex-wrap items-center justify-between gap-3">
+                  <span class="detail-label text-xs font-bold uppercase tracking-wider">Three reviewers</span>
+                  <div class="reviewers-strip__names flex items-center gap-2 flex-wrap" aria-label="Three reviewers and what they assess">
+                    <span class="reviewer-chip reviewer-chip--scrath inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"><span class="reviewer-chip__num font-serif font-bold" aria-hidden="true">1</span> Joko <span class="reviewer-chip__focus">Buildability</span></span>
+                    <span class="reviewer-chip reviewer-chip--fervent inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"><span class="reviewer-chip__num font-serif font-bold" aria-hidden="true">2</span> Kowi <span class="reviewer-chip__focus">Originality</span></span>
+                    <span class="reviewer-chip reviewer-chip--warden inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"><span class="reviewer-chip__num font-serif font-bold" aria-hidden="true">3</span> Dodo <span class="reviewer-chip__focus">Clarity</span></span>
+                  </div>
+                  <button class="pack-bio-toggle text-xs font-semibold transition-colors" type="button" id="pack-bio-toggle" aria-expanded="false" aria-controls="pack-bios">What they assess</button>
+                </div>
+                <div class="pack-bios grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 mt-4 border-t" id="pack-bios" hidden></div>
+              </div>
+
+              <div class="room-frame w-full">
+                <!-- Phase 1: pitch form in frosted glass container ---------------- -->
+                <aside class="ledger-rail w-full" id="pitch-panel" data-phase="pitch" aria-label="Your pitch draft">
+                  <form class="ledger-block glass-card p-6 sm:p-8 md:p-10 transition-all duration-300" id="pitch-form" aria-label="Pitch your idea" novalidate>
+                    <fieldset class="reviewer-picks" aria-describedby="reviewer-picks-note ai-status">
+                      <legend class="reviewer-picks__title">Choose a model for each reviewer</legend>
+                      <p class="reviewer-picks__note" id="reviewer-picks-note">Use a different model for each reviewer. You’ll choose again for your next pitch.</p>
+                      <div class="reviewer-picks__grid">
+                        <div class="reviewer-pick reviewer-pick--scrath">
+                          <div class="reviewer-pick__identity">
+                            <span class="reviewer-pick__number" aria-hidden="true">I</span>
+                            <span><strong>Joko</strong><small>Buildability</small></span>
+                          </div>
+                          <label for="ai-model-scrath">Model for Joko</label>
+                          <select id="ai-model-scrath" class="tw-glass-input" required disabled aria-describedby="reviewer-picks-note">
+                            <option value="">Loading models…</option>
+                          </select>
+                        </div>
+                        <div class="reviewer-pick reviewer-pick--fervent">
+                          <div class="reviewer-pick__identity">
+                            <span class="reviewer-pick__number" aria-hidden="true">II</span>
+                            <span><strong>Kowi</strong><small>Originality</small></span>
+                          </div>
+                          <label for="ai-model-fervent">Model for Kowi</label>
+                          <select id="ai-model-fervent" class="tw-glass-input" required disabled aria-describedby="reviewer-picks-note">
+                            <option value="">Loading models…</option>
+                          </select>
+                        </div>
+                        <div class="reviewer-pick reviewer-pick--warden">
+                          <div class="reviewer-pick__identity">
+                            <span class="reviewer-pick__number" aria-hidden="true">III</span>
+                            <span><strong>Dodo</strong><small>Clarity</small></span>
+                          </div>
+                          <label for="ai-model-warden">Model for Dodo</label>
+                          <select id="ai-model-warden" class="tw-glass-input" required disabled aria-describedby="reviewer-picks-note">
+                            <option value="">Loading models…</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="reviewer-picks__footer">
+                        <p class="ai-status" id="ai-status" role="status" aria-live="polite">Connecting to reviewer models…</p>
+                        <button class="button button--quiet px-3 py-2 text-xs" type="button" id="ai-connect" hidden>Retry connection</button>
+                      </div>
+                      <details class="judge-guide">
+                        <summary>Meet Joko, Kowi, and Dodo</summary>
+                        <div class="judge-guide__body">
+                          <p class="judge-guide__lead">Build it. Make it yours. Make it clear.</p>
+                          <div class="judge-guide__grid">
+                            <section><h3>Joko · Buildability</h3><p>Joko represents the ability to turn ideas into working products people can use. A good idea needs a practical first build.</p><blockquote>“A good idea is an idea that can be built.”</blockquote></section>
+                            <section><h3>Kowi · Originality</h3><p>Kowi represents the courage to make something with its own identity. A different approach matters when there is a reason behind it.</p><blockquote>“Being different is not just about standing out, but having a reason to be different.”</blockquote></section>
+                            <section><h3>Dodo · Clarity</h3><p>Dodo represents simplicity in explaining an idea. The problem and solution should make sense to both the people building it and the people using it.</p><blockquote>“A great idea becomes more meaningful when everyone can understand it.”</blockquote></section>
+                          </div>
+                          <p>Joko builds, Kowi differentiates, and Dodo clarifies. Together, they look for an idea people can build, recognize as its own, and understand.</p>
+                        </div>
+                      </details>
+                    </fieldset>
+
+                    <div class="panel-heading panel-heading--pitch pb-5 mb-6 border-b">
+                      <h2 class="panel-heading__title font-serif text-xl sm:text-2xl font-bold">Your pitch</h2>
+                      <div class="pitch-tools">
+                        <button class="sample-pitch-toggle text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors" type="button" id="load-sample-pitch" disabled>Try an example</button>
+                        <button class="button button--quiet pitch-suggest-button" type="button" id="ai-pitch-suggest" disabled>AI pitch suggestion</button>
+                      </div>
+                    </div>
+                    <p class="ai-pitch-status" id="ai-pitch-status" role="status" aria-live="polite"></p>
+                    <p class="pitch-guidance">Name the idea and the people it helps. Then describe their problem and your first build.</p>
+                    <div class="pitch-grid grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                      <div class="field-group flex flex-col gap-2 relative">
+                        <label for="pitch-title" class="text-xs font-bold uppercase tracking-wider">Idea name <span aria-hidden="true">*</span></label>
+                        <input id="pitch-title" class="tw-glass-input w-full px-4 py-3 text-sm sm:text-base" name="title" type="text" maxlength="140" required disabled autocomplete="off" placeholder="e.g. ShiftSwap" />
+                        <span class="count-note font-mono text-[11px] text-right" id="title-count">0 / 140</span>
+                      </div>
+                      <div class="field-group flex flex-col gap-2">
+                        <label for="pitch-audience" class="text-xs font-bold uppercase tracking-wider">Who it is for <span aria-hidden="true">*</span></label>
+                        <input id="pitch-audience" class="tw-glass-input w-full px-4 py-3 text-sm sm:text-base" name="audience" type="text" maxlength="200" required disabled autocomplete="off" placeholder="e.g. hourly workers swapping shifts" />
+                      </div>
+                    </div>
+
+                    <div class="field-group flex flex-col gap-2 mb-5">
+                      <label for="pitch-description" class="text-xs font-bold uppercase tracking-wider">Your pitch <span aria-hidden="true">*</span></label>
+                      <textarea id="pitch-description" class="tw-glass-input w-full p-4 text-sm sm:text-base" name="description" rows="5" maxlength="800" required disabled placeholder="What problem do they have? How does your idea help? What would you build first?"></textarea>
+                      <span class="count-note font-mono text-[11px] text-right" id="description-count">0 / 800</span>
+                    </div>
+
+                    <div class="field-group flex flex-col gap-2">
+                      <label for="pitch-category" class="text-xs font-bold uppercase tracking-wider">Category <span class="field-optional">Optional</span></label>
+                      <select id="pitch-category" class="tw-glass-input w-full px-4 py-3 text-sm sm:text-base" name="category" disabled>
+                        <option value="product">Product</option>
+                        <option value="app">App</option>
+                        <option value="web3">Web3 / on-chain</option>
+                        <option value="ai">AI assisted</option>
+                        <option value="physical">Physical / service</option>
+                        <option value="ecosystem">Platform / ecosystem</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <p class="pitch-privacy" id="pitch-privacy" role="status" aria-live="polite">Your pitch and reviewer chat are sent to the three selected models for review.</p>
+
+                    <p class="pitch-message text-sm mt-4 font-medium" id="pitch-message" role="status" aria-live="polite"></p>
+                  </form>
+
+                  <div class="phase-actions mt-6 flex flex-col items-center gap-2">
+                    <button class="button button--primary w-full py-4 text-base font-bold transition-all" type="button" id="pitch-continue" disabled>Make your case</button>
+                    <p class="phase-actions__note text-xs" id="pitch-continue-note">Add an idea name, audience, and pitch to continue.</p>
+                  </div>
+                </aside>
+
+                <!-- Phase 2: conversation ---------------------------------------- -->
+                <div class="room-column w-full" data-phase="conversation" hidden>
+                  <section class="thread-panel glass-card p-5 sm:p-7 md:p-8 transition-all duration-300" id="thread-panel" aria-label="Conversation with the reviewers">
+                    <div class="panel-heading flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b">
+                      <h2 class="panel-heading__title font-serif text-xl sm:text-2xl font-bold">Conversation</h2>
+                      <span class="room-note text-xs px-2.5 py-1 rounded-full font-mono border">Live AI review</span>
+                    </div>
+                    <div class="standing p-3.5 sm:p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border" id="standing" aria-live="polite" hidden>
+                      <div class="standing__group flex items-center gap-3 sm:gap-4 flex-wrap">
+                        <span class="standing__label text-xs font-bold uppercase tracking-wider shrink-0">Review scores</span>
+                        <ul class="standing__list flex items-center gap-2.5 sm:gap-3 flex-wrap" id="standing-list"></ul>
+                      </div>
+                      <span class="standing__hint text-xs font-mono shrink-0" id="standing-hint">Scores appear with the verdict.</span>
+                    </div>
+                    <div class="thread flex flex-col gap-4 mb-6" id="thread" role="log" aria-live="polite" aria-label="Conversation messages; scrollable history" tabindex="0"></div>
+                    <div class="composer p-3 sm:p-4 border">
+                      <div class="prompt-chips flex flex-wrap gap-2 mb-3" id="prompt-chips" aria-label="Sentence starters to strengthen your case" hidden></div>
+                      <div class="composer__row flex items-end gap-2.5">
+                        <label class="visually-hidden" for="composer-input">Message to the reviewers</label>
+                        <textarea id="composer-input" class="tw-glass-input p-3.5 flex-1 min-h-[46px] max-h-36 text-sm sm:text-base resize-none focus:ring-2" rows="1" placeholder="Reply to the reviewers…" autocomplete="off"></textarea>
+                        <button class="button button--primary composer__send w-11 h-11 p-0 flex items-center justify-center shrink-0" type="button" id="composer-send" aria-label="Send">
+                          <span class="composer__send-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 19V5M12 5l-6 6M12 5l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                          </span>
+                        </button>
+                      </div>
+                      <p class="composer__hint text-[11px] mt-2.5">Enter to send · Shift+Enter for a new line</p>
+                    </div>
+                  </section>
+                </div>
+              </div>
+
+              <!-- Verdict Trigger Bar -->
+              <div class="verdict-bar glass-card p-5 sm:p-6 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" data-phase="conversation" hidden>
+                <div class="verdict-bar__text">
+                  <p class="verdict-bar__title font-serif text-lg font-bold">Ready for a verdict?</p>
+                  <p class="verdict-bar__note text-xs">Get three scores and a clear reason behind each one.</p>
+                </div>
+                <button class="button button--primary verdict-bar__go px-6 py-3 font-bold text-sm" type="submit" form="pitch-form" id="run-verdict">Get the verdict</button>
+                <p class="privacy-note verdict-bar__privacy text-[11px] w-full sm:w-auto">
+                  AI feedback is an impression, not advice. Publishing is optional.
+                </p>
+              </div>
+
+              <!-- Optional debate controls. The reviewer models are chosen above. -->
+              <details class="ai-panel glass-card p-5 mb-6" id="ai-panel" data-phase="conversation" hidden>
+                <summary class="ai-panel__summary flex items-center justify-between cursor-pointer">
+                  <span class="detail-label text-xs font-bold uppercase tracking-wider">Debate settings</span>
+                  <span class="ai-panel__state text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full" id="ai-mode-state">Models loading</span>
+                </summary>
+                <div class="ai-panel__body pt-4 mt-3 border-t space-y-4">
+                  <p class="ai-panel__intro text-xs leading-relaxed">
+                    The selected reviewer models are used for the review. Turn on debate mode to add two debaters and a deciding model.
+                  </p>
+
+                  <label class="ai-check flex items-center gap-2 text-xs cursor-pointer">
+                    <input type="checkbox" id="ai-debate-toggle" class="field-check" />
+                    <span>Debate mode: two models argue the pitch, a judge rules.</span>
+                  </label>
+
+                  <div class="ai-models grid grid-cols-1 sm:grid-cols-3 gap-3" id="ai-debate-group" hidden>
+                    <div class="ai-panel__row flex flex-col gap-1">
+                      <label for="ai-model-debate-a" class="text-xs">Debater A (for)</label>
+                      <select id="ai-model-debate-a" class="tw-glass-input p-2 text-xs"></select>
+                    </div>
+                    <div class="ai-panel__row flex flex-col gap-1">
+                      <label for="ai-model-debate-b" class="text-xs">Debater B (against)</label>
+                      <select id="ai-model-debate-b" class="tw-glass-input p-2 text-xs"></select>
+                    </div>
+                    <div class="ai-panel__row flex flex-col gap-1">
+                      <label for="ai-model-judge" class="text-xs">Final reviewer</label>
+                      <select id="ai-model-judge" class="tw-glass-input p-2 text-xs"></select>
+                    </div>
+                  </div>
+
+                </div>
+              </details>
+            </div>
+          </section>
+
+          <!-- ===================== Phase 3: the verdict and publish ========= -->
+          <section class="verdict-section reveal space-y-6" id="verdict" aria-labelledby="verdict-title" data-phase="verdict" hidden>
+            <div class="shell shell--narrow w-full max-w-4xl mx-auto">
+              <div class="verdict-shell" id="verdict-shell">
+                <div class="verdict-loading glass-card p-6 sm:p-8 text-center" id="verdict-loading" hidden>
+                  <p class="verdict-loading__title font-serif text-xl font-bold mb-4" role="status">Reviewing your pitch…</p>
+                  <ol class="verdict-loading__lines text-sm space-y-2" aria-hidden="true">
+                    <li>Checking buildability.</li>
+                    <li>Looking for a distinct reason to choose it.</li>
+                    <li>Checking the problem and first user.</li>
+                  </ol>
+                </div>
+
+                <div id="verdict-result">
+                  <!-- Ruling Header Card -->
+                  <div class="verdict-head glass-card p-6 sm:p-9 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border">
+                    <div class="verdict-head__main max-w-2xl">
+                      <h2 id="verdict-title" class="verdict-title font-serif text-2xl sm:text-3xl font-bold tracking-normal" tabindex="-1">The verdict</h2>
+                      <p class="verdict-head__pitch text-sm sm:text-base leading-relaxed mt-3" id="verdict-pitch"></p>
+                    </div>
+                    <div class="verdict-total shrink-0" id="verdict-total" aria-hidden="true">
+                      <div class="verdict-total__inner">
+                        <span class="verdict-total__value font-serif text-4xl sm:text-5xl font-bold" id="verdict-total-value">0</span>
+                        <span class="verdict-total__unit text-xs font-semibold mt-1">/ 100 overall</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Consensus Takeaway Banner -->
+                  <div class="verdict-summary glass-card p-4 sm:p-5 mb-6 flex items-start gap-3.5 border" id="verdict-summary-box">
+                    <div class="verdict-summary__icon shrink-0 mt-0.5" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4M12 8h.01" />
+                      </svg>
+                    </div>
+                    <div class="verdict-summary__content flex-1 min-w-0">
+                      <span class="verdict-summary__badge text-[11px] font-bold block mb-1">Overall assessment</span>
+                      <p class="verdict-takeaway text-sm sm:text-base leading-relaxed font-normal m-0" id="verdict-takeaway"></p>
+                    </div>
+                  </div>
+
+                  <p class="verdict-stale text-xs font-semibold mb-6" id="verdict-stale" role="status">The draft changed since this verdict. Run it again for fresh scores.</p>
+
+                  <!-- Three Reviewer Cards -->
+                  <div class="head-cards grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 my-6 items-stretch" id="head-cards"></div>
+
+                  <!-- Verdict Actions Footer -->
+                  <div class="verdict-actions glass-card p-5 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border">
+                    <div class="verdict-actions__text">
+                      <h3 class="verdict-actions__heading font-serif text-base sm:text-lg font-bold">What next?</h3>
+                      <p class="verdict-actions__prompt text-xs sm:text-sm mt-0.5" id="publish-prompt">Publish an optional public record, or start another pitch.</p>
+                    </div>
+                    <div class="verdict-actions__row flex items-center gap-3 flex-wrap w-full md:w-auto shrink-0">
+                      <button class="button button--primary px-5 py-2.5 font-bold text-sm transition-all flex items-center gap-2" type="button" id="publish-toggle" aria-expanded="false" aria-controls="publish-panel">
+                        <span data-publish-toggle-label>Publish the record</span>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      </button>
+                      <button class="button button--quiet px-4 py-2.5 font-medium text-sm transition-all" type="button" id="judge-another">New pitch</button>
+                    </div>
+                  </div>
+
+                  <!-- BOT Chain Publishing Panel -->
+                  <div class="publish-panel glass-card p-6 sm:p-8 mt-6" id="publish-panel" data-phase="publish" hidden aria-labelledby="publish-title">
+                    <div class="panel-heading flex items-center justify-between pb-4 mb-4 border-b">
+                      <h3 class="panel-heading__title font-serif text-lg sm:text-xl font-bold" id="publish-title">Seal the record on BOT Chain</h3>
+                      <span class="setup-state text-xs font-mono font-medium px-2.5 py-1 rounded-full border" id="live-setup-state" aria-live="polite">Not connected</span>
+                    </div>
+                    <p class="publish-intro text-sm leading-relaxed mb-6">
+                      Publishing writes the idea name, the pitch, and the three scores to the public BOT Chain ledger,
+                      stamped with your wallet. It becomes public and permanent, and it is optional. All it takes is a
+                      connected wallet.
+                      <button class="text-link text-link--button underline font-medium ml-1" type="button" id="open-deploy-guide" data-action="open-deploy-guide">How does publishing work?</button>
+                    </p>
+
+                    <ol class="setup-steps flex flex-col gap-4 mb-6">
+                      <li class="setup-step flex items-start gap-4 p-4 border">
+                        <span class="setup-step__num flex items-center justify-center w-7 h-7 rounded-full text-xs font-mono font-bold" aria-hidden="true">1</span>
+                        <div class="setup-step__body flex-1 flex flex-col gap-1.5">
+                          <label for="network-select" class="text-xs font-bold uppercase">Network</label>
+                          <select id="network-select" class="tw-glass-input p-2 text-sm">
+                            <option value="testnet">BOT Chain Testnet</option>
+                            <option value="mainnet">BOT Chain Mainnet</option>
+                          </select>
+                        </div>
+                      </li>
+                      <li class="setup-step flex items-start gap-4 p-4 border">
+                        <span class="setup-step__num flex items-center justify-center w-7 h-7 rounded-full text-xs font-mono font-bold" aria-hidden="true">2</span>
+                        <div class="setup-step__body flex-1">
+                          <button class="button button--quiet button--block w-full py-2.5 text-sm font-semibold" type="button" id="connect-wallet">Connect wallet</button>
+                          <button class="button button--quiet button--block w-full py-2.5 text-sm font-semibold mt-2" type="button" id="stop-wallet-connect" hidden>Stop waiting</button>
+                          <p class="setup-note mt-2" id="local-wallet-help" hidden>Opened as an HTML file? In this folder, run <code>npm run dev</code>, then open <a class="text-link" href="http://localhost:3000/">http://localhost:3000/</a> in Brave. Browser extensions may not have access to local files.</p>
+                          <button class="text-link text-link--button text-xs mt-2" type="button" id="connect-wallet-qr">Use MetaMask mobile / QR instead</button>
+                          <details class="wallet-help mt-2">
+                            <summary>MetaMask not opening in Brave?</summary>
+                            <p>Set Default Ethereum wallet to <strong>Extensions (no fallback)</strong> at <code>brave://settings/web3</code>, then reload.</p>
+                          </details>
+                          <div class="wristband flex items-center justify-between gap-3 mt-2" id="wristband" hidden>
+                            <span class="wristband__label font-mono text-xs" id="live-account"></span>
+                            <button class="button button--quiet text-xs px-2.5 py-1" type="button" id="disconnect-wallet">Disconnect</button>
+                          </div>
+                          <form id="manual-wallet-form" class="flex flex-col gap-2 mt-4">
+                            <label for="manual-wallet-address">Look up a wallet address</label>
+                            <div class="flex gap-2">
+                              <input id="manual-wallet-address" class="tw-glass-input p-2 text-sm min-w-0 flex-1" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x..." aria-describedby="manual-wallet-note manual-wallet-status" />
+                              <button class="button button--quiet px-4 py-2 text-sm" type="submit">View</button>
+                            </div>
+                            <p class="setup-note" id="manual-wallet-note">Read-only: opens the address on the selected network explorer. An address alone cannot approve a transaction.</p>
+                            <p class="setup-note" id="manual-wallet-status" role="status" aria-live="polite"></p>
+                          </form>
+                        </div>
+                      </li>
+                      <li class="setup-step flex items-start gap-4 p-4 border">
+                        <span class="setup-step__num flex items-center justify-center w-7 h-7 rounded-full text-xs font-mono font-bold" aria-hidden="true">3</span>
+                        <div class="setup-step__body flex-1">
+                          <button class="button button--primary button--block w-full py-2.5 text-sm font-bold" type="button" id="publish-record">Publish the record</button>
+                        </div>
+                      </li>
+                    </ol>
+
+                    <p class="setup-note font-mono text-xs" id="live-status" role="status" aria-live="polite">Connect a wallet to publish. Pitching and the verdict work without one.</p>
+                    <p class="pitch-message text-sm mt-3" id="publish-message" role="status" aria-live="polite"></p>
+                    <div class="publish-proof mt-4" id="publish-proof" hidden></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ===================== Records side view ========================= -->
+          <section class="section section--records space-y-6" id="records" aria-labelledby="records-title" data-view="records" hidden>
+            <div class="shell max-w-4xl mx-auto">
+              <div class="section-heading section-heading--split glass-card p-6 sm:p-8 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h2 id="records-title" class="font-serif text-2xl md:text-3xl font-bold" tabindex="-1">Sealed records</h2>
+                </div>
+                <p class="section-heading__aside text-xs sm:text-sm max-w-md">A read-only view of the published records on BOT Chain. It opens without a wallet and shows only what is already on-chain.</p>
+              </div>
+              <p class="phase-actions mb-6">
+                <button class="button button--quiet px-4 py-2 text-sm font-semibold" type="button" id="records-back">Back to the review</button>
+              </p>
+              <div class="records-toolbar glass-card p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+                <span class="records-toolbar__label font-mono text-xs" id="records-status" role="status" aria-live="polite">Reading the published records.</span>
+                <button class="button button--quiet text-xs px-3 py-1.5" type="button" id="refresh-records">Refresh</button>
+              </div>
+              <div class="records-list flex flex-col gap-4" id="records-list">
+                <div class="empty-state glass-card p-8 text-center">
+                  <strong class="font-serif text-lg">No records yet.</strong>
+                  <p class="empty-state__note text-sm mt-2">Published records appear here. Generate a verdict, then publish one to start the wall.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- Publishing Guide Drawer (Glassmorphic) -->
+    <dialog class="drawer" id="deploy-guide" aria-labelledby="deploy-guide-title" hidden>
+      <div class="drawer__panel glass-card p-6 sm:p-8 max-w-2xl w-full mx-auto">
+        <div class="drawer__head flex items-center justify-between pb-4 mb-5 border-b">
+          <div>
+            <p class="detail-label text-xs font-bold uppercase tracking-wider">Publishing</p>
+            <h2 id="deploy-guide-title" class="font-serif text-xl sm:text-2xl font-bold">How publishing works</h2>
+          </div>
+          <button class="button button--quiet text-xs px-3 py-1.5" type="button" id="deploy-guide-close">Close</button>
+        </div>
+
+        <p class="drawer__lead text-sm leading-relaxed mb-6">
+          The pitch you write here never leaves your browser on its own. Publishing writes a record to the
+          public BOT Chain ledger: the idea name, the pitch, and the three scores, stamped with your wallet.
+          You only need a connected wallet; your wallet pays its own small network fee.
+        </p>
+
+        <div class="drawer__grid grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+          <div class="p-4 border">
+            <h3 class="drawer__sub font-serif text-base font-bold mb-3">What goes on-chain</h3>
+            <ul class="drawer__list drawer__list--yes text-xs space-y-1.5">
+              <li>Your wallet address as the proposer</li>
+              <li>The idea name and the pitch text</li>
+              <li>The three reviewer scores and the total</li>
+              <li>The timestamp</li>
+            </ul>
+          </div>
+          <div class="p-4 border">
+            <h3 class="drawer__sub font-serif text-base font-bold mb-3">What stays off-chain</h3>
+            <ul class="drawer__list drawer__list--no text-xs space-y-1.5">
+              <li>The reviewers' written reasons behind each score</li>
+              <li>The analysis dimensions behind each score</li>
+              <li>Your conversation with the reviewers</li>
+              <li>Anything you did not confirm for publishing</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="drawer__sub font-serif text-base font-bold mb-3">How to publish</h3>
+        <ol class="deploy-steps space-y-2 text-xs mb-6" id="deploy-guide-steps"></ol>
+
+        <p class="drawer__note text-[11px]">
+          On-chain records are public and permanent. Do not publish private, legal, medical, financial, or
+          other high-stakes information. AI feedback is an impression, not advice.
+        </p>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="new-pitch-confirm" aria-labelledby="new-pitch-confirm-title" aria-describedby="new-pitch-confirm-note">
+      <div class="modal__panel glass-card p-6 sm:p-8 max-w-lg w-full mx-auto">
+        <h2 id="new-pitch-confirm-title" class="font-serif text-xl font-bold mb-3">Start a new pitch?</h2>
+        <p id="new-pitch-confirm-note" class="text-sm mb-6">This clears this pitch, its chat and verdict, and every model choice. Published records stay on-chain.</p>
+        <div class="modal__actions">
+          <button class="button button--quiet px-4 py-2 text-sm font-semibold" type="button" id="new-pitch-cancel">Keep this review</button>
+          <button class="button button--primary px-4 py-2 text-sm font-bold" type="button" id="new-pitch-confirm-go">Clear and start new</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Confirmation Modal -->
+    <dialog class="modal" id="publish-confirm" aria-labelledby="publish-confirm-title" hidden>
+      <form method="dialog" class="modal__panel glass-card p-6 sm:p-8 max-w-lg w-full mx-auto">
+        <h2 id="publish-confirm-title" class="font-serif text-xl font-bold mb-4">Publish this record?</h2>
+        <div id="publish-confirm-body" class="modal__body text-sm mb-5"></div>
+        <label class="confirm-ack flex items-center gap-2 text-xs cursor-pointer mb-6">
+          <input type="checkbox" id="publish-confirm-ack" class="field-check" />
+          <span>I understand this is public and permanent.</span>
+        </label>
+        <div class="modal__actions flex items-center justify-end gap-3">
+          <button class="button button--quiet px-4 py-2 text-xs font-semibold" type="button" id="publish-confirm-cancel">Cancel</button>
+          <button class="button button--primary px-4 py-2 text-xs font-bold" type="button" id="publish-confirm-go" disabled>Publish on-chain</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
